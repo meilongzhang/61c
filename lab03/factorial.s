@@ -22,3 +22,14 @@ main:
 
 factorial:
     # YOUR CODE HERE
+    addi a5, x0, 1
+    addi a6, x0, 1
+    
+    multiply:
+    	mul a5, a0, a5
+        sub a0, a0, a6
+        bge a0, a6, multiply
+        add a0, x0, a5
+        jr ra
+        
+    
