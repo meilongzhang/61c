@@ -66,20 +66,33 @@ map:
     # are modified by the callees, even when we know the content inside the functions 
     # we call. this is to enforce the abstraction barrier of calling convention.
 mapLoop:
-    add t1, s0, x0      # load the address of the array of current node into t1
+    #Error 1: should be loading in the pointer to the array, not getting the address to the pointer to the array
+    lw t1, 0(s0)
+    #add t1, s0, x0      # load the address of the array of current node into t1
     lw t2, 4(s0)        # load the size of the node's array into t2
 
-    add t1, t1, t0      # offset the array address by the count
+	# Error 2: offset is not correct, offset by 4*count to get the correct address
+    addi a0, x0, 4
+    mul a0, t0, a0
+    add t1, t1, a0      # offset the array address by the count
     lw a0, 0(t1)        # load the value at that address into a0
-
-    jalr s1             # call the function on that value.
-
+    # ERROR 3: need to store temp registers before calling function
+    addi sp, sp, -12
+    sw t2, 8(sp)
+    sw t0, 4(sp)
+    sw t1, 0(sp)
+    jalr s1 # call the function on that value.
+    lw t1, 0(sp)
+    lw t2, 8(sp)
+    lw t0, 4(sp)
+    addi sp, sp, 12
     sw a0, 0(t1)        # store the returned value back into the array
     addi t0, t0, 1      # increment the count
     bne t0, t2, mapLoop # repeat if we haven't reached the array size yet
-
-    la a0, 8(s0)        # load the address of the next node into a0
-    lw a1, 0(s1)        # put the address of the function back into a1 to prepare for the recursion
+	#Error 4: load address for dynamic should use lw and not la
+    lw a0, 8(s0)        # load the address of the next node into a0
+    # ERROR 5: s1 is the address, should not be using lw
+    add a1, s1, x0        # put the address of the function back into a1 to prepare for the recursion
 
     jal  map            # recurse
 done:
@@ -87,6 +100,8 @@ done:
     lw s1, 4(sp)
     lw ra, 0(sp)
     addi sp, sp, 12
+    #Error 6: did not return to the return address
+    jr ra
 
 print_newline:
     li a1, '\n'
